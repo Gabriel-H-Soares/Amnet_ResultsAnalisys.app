@@ -15,10 +15,6 @@ st.sidebar.markdown("### Filtros")
 
 filtrar_por_mes = st.sidebar.checkbox('Filtrar por período')
 
-
-agrupar_ = st.sidebar.checkbox('Agrupar')
-
-
 # Adicionar filtro de intervalo de meses
 meses_disponiveis = sorted(df['Mês/Ano'].unique())
 if filtrar_por_mes:
@@ -37,72 +33,66 @@ df_filtrado = df.copy()
 if filtrar_por_mes:
     df_filtrado = df_filtrado[df_filtrado['Mês/Ano'].between(mes_inicial, mes_final)]
 
-if agrupar_:
-    df_filtrado = df_filtrado.groupby(['Conta', 'Descrição', 'Mês/Ano','Fornecedor', 'Centro de Custo'])['Valor'].sum().reset_index()
+# Criar pivot table fora da estrutura condicional
+df_filtrado_pivot = df_filtrado.pivot_table(
+    index=['Conta', 'Descrição', 'Fornecedor', 'Centro de Custo'],
+    columns='Mês/Ano',
+    values='Valor',
+    aggfunc='sum',
+    fill_value=0
+)
+df_filtrado_pivot['Total'] = df_filtrado_pivot.sum(axis=1)
+df_filtrado_pivot = df_filtrado_pivot.sort_values('Total', ascending=False)
 
-    # Criar pivot table
-    df_filtrado_pivot = df_filtrado.pivot_table(
-        index=['Conta', 'Descrição', 'Fornecedor', 'Centro de Custo'],
-        columns='Mês/Ano',
-        values='Valor',
-        aggfunc='sum',
-        fill_value=0
-    )
-    df_filtrado_pivot['Total'] = df_filtrado_pivot.sum(axis=1)
-    df_filtrado_pivot = df_filtrado_pivot.sort_values('Total', ascending=False)
+# adicionar filtros de conta, fornecedor e centro de custo
+contas_disponiveis = sorted(df_filtrado['Conta'].unique())
 
-    # adicionar filtros de conta, fornecedor e centro de custo
-    contas_disponiveis = sorted(df_filtrado['Conta'].unique())
+col1, col2, col3, col4 = st.columns([1, 1, 1, 3])
+with col1:
+    conta_selecionada = st.selectbox('Selecione a conta:', ['Todos'] + contas_disponiveis)
 
-    col1, col2, col3, col4 = st.columns([1, 1, 1, 3])
-    with col1:
-        conta_selecionada = st.selectbox('Selecione a conta:', contas_disponiveis)
-    
-    # Filtrar fornecedores baseados na conta selecionada
+# Filtrar fornecedores baseados na conta selecionada
+if conta_selecionada == 'Todos':
+    fornecedores_disponiveis = sorted(df_filtrado['Fornecedor'].unique())
+else:
     fornecedores_disponiveis = sorted(df_filtrado[df_filtrado['Conta'] == conta_selecionada]['Fornecedor'].unique())
 
-    with col2:
-        fornecedor_selecionado = st.selectbox('Selecione o fornecedor:', ['Todos'] + fornecedores_disponiveis)
-    
-    # Filtrar centros de custo baseados na conta e fornecedor selecionados
-    centros_custo_df = df_filtrado[df_filtrado['Conta'] == conta_selecionada]
-    if fornecedor_selecionado != 'Todos':
-        centros_custo_df = centros_custo_df[centros_custo_df['Fornecedor'] == fornecedor_selecionado]
-    
-    centros_custo_disponiveis = sorted(centros_custo_df['Centro de Custo'].unique())
+with col2:
+    fornecedor_selecionado = st.selectbox('Selecione o fornecedor:', ['Todos'] + fornecedores_disponiveis)
 
-    with col3:
-        centro_custo_selecionado = st.selectbox('Selecione o centro de custo:', ['Todos'] + centros_custo_disponiveis)
+# Filtrar centros de custo baseados na conta e fornecedor selecionados
+centros_custo_df = df_filtrado
+if conta_selecionada != 'Todos':
+    centros_custo_df = centros_custo_df[centros_custo_df['Conta'] == conta_selecionada]
+if fornecedor_selecionado != 'Todos':
+    centros_custo_df = centros_custo_df[centros_custo_df['Fornecedor'] == fornecedor_selecionado]
 
-   # Aplicar os filtros selecionados ao df_filtrado_pivot
-    df_filtrado_pivot_final = df_filtrado_pivot
-    if conta_selecionada:
-        df_filtrado_pivot_final = df_filtrado_pivot_final.loc[df_filtrado_pivot_final.index.get_level_values('Conta') == conta_selecionada]
-    if fornecedor_selecionado != 'Todos':
-        df_filtrado_pivot_final = df_filtrado_pivot_final.loc[df_filtrado_pivot_final.index.get_level_values('Fornecedor') == fornecedor_selecionado]
-    if centro_custo_selecionado != 'Todos':
-        df_filtrado_pivot_final = df_filtrado_pivot_final.loc[df_filtrado_pivot_final.index.get_level_values('Centro de Custo') == centro_custo_selecionado]
+centros_custo_disponiveis = sorted(centros_custo_df['Centro de Custo'].unique())
 
-    # Calcular a altura da tabela
-    num_rows = len(df_filtrado_pivot_final)
-    table_height = max(400, min(600, num_rows * 35))  # Ajuste o multiplicador conforme necessário
-else:
-    # Criação da pivot table original (não agrupada)
-    df_filtrado_pivot = df_filtrado.pivot_table(
-        index=['Conta', 'Descrição', 'Fornecedor', 'Centro de Custo'],
-        columns='Mês/Ano',
-        values='Valor',
-        aggfunc='sum',
-        fill_value=0
-    )
-    df_filtrado_pivot['Total'] = df_filtrado_pivot.sum(axis=1)
-    df_filtrado_pivot = df_filtrado_pivot.sort_values('Total', ascending=False)
+with col3:
+    centro_custo_selecionado = st.selectbox('Selecione o centro de custo:', ['Todos'] + centros_custo_disponiveis)
 
-    # calcular a altura da tabela
-    num_rows = len(df_filtrado_pivot)
-    table_height = max(400, min(600, num_rows * 35))  # Ajuste o multiplicador conforme necessário
+# Aplicar os filtros selecionados ao df_filtrado_pivot
+df_filtrado_pivot_final = df_filtrado_pivot
+if conta_selecionada != 'Todos':
+    df_filtrado_pivot_final = df_filtrado_pivot_final.loc[df_filtrado_pivot_final.index.get_level_values('Conta') == conta_selecionada]
+if fornecedor_selecionado != 'Todos':
+    df_filtrado_pivot_final = df_filtrado_pivot_final.loc[df_filtrado_pivot_final.index.get_level_values('Fornecedor') == fornecedor_selecionado]
+if centro_custo_selecionado != 'Todos':
+    df_filtrado_pivot_final = df_filtrado_pivot_final.loc[df_filtrado_pivot_final.index.get_level_values('Centro de Custo') == centro_custo_selecionado]
 
-st.dataframe(df_filtrado_pivot_final if agrupar_ else df_filtrado_pivot, height=table_height, width=1800)
+# Calcula o tamanho da tabela
+num_rows = len(df_filtrado_pivot_final)
+table_height = max(400, min(600, num_rows * 35))  # Ajuste o multiplicador conforme necessário
+
+def format_value(val):
+    return '-' if val == 0 else f'{val:,.2f}'
+
+# Aplicar a formatação à pivot table
+df_formatted = df_filtrado_pivot_final.applymap(format_value)
+
+# Exibir o dataframe formatado
+st.dataframe(df_formatted, height=table_height, width=1800)
 
 st.markdown("### Gráfico da Movimentação por período")
 
@@ -114,10 +104,7 @@ with col1:
     chart_type = st.selectbox("Tipo de Gráfico", ["Barras", "Pontos com Linhas"])
 
 # Preparar os dados para o gráfico
-if agrupar_:
-    df_grafico = df_filtrado_pivot_final.reset_index()
-else:
-    df_grafico = df_filtrado_pivot.reset_index()
+df_grafico = df_filtrado_pivot_final.reset_index()
 
 # Melt o dataframe para ter uma coluna de 'Mês/Ano' e uma coluna de 'Valor'
 df_grafico_melted = pd.melt(df_grafico, 
@@ -182,5 +169,6 @@ fig.update_layout(
     showlegend=False,
     width=600
 )
+
 # Exibir o gráfico
 st.plotly_chart(fig, use_container_width=True)

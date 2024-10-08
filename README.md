@@ -1,3 +1,3 @@
 **Summary**
 
-This project is for results analysis during the time
+This project has a focuses on analysis of results data

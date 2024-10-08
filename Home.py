@@ -6,8 +6,8 @@ import plotly.express as px
 st.set_page_config(layout='wide', page_title='P&L-America Net')
 
 if "data" not in st.session_state:
-    df = pd.read_excel("datasets/Amnet_Base_P&L_2024.xlsx", sheet_name="Base_2024") 
-    df = df[['CT2_DATA', 'Grupo', 'Sub-Grupo', 'Conta', 'Desc.conta', 'CT2_VALOR', 'CT2_CCD', 'A2_NOME']]
+    df = pd.read_excel("datasets/Amnet_Base_2024.xlsx", sheet_name="Base_2024") 
+    df = df[['CT2_DATA', 'Grupo', 'Sub-Grupo', 'Conta', 'Desc.conta', 'CT2_VALOR', 'CT2_CC', 'A2_NOME']]
     df.columns = ['Data', 'Grupo', 'Sub-Grupo', 'Conta', 'Descrição', 'Valor', 'Centro de Custo', 'Fornecedor']
     df['Mês/Ano'] = df['Data'].dt.to_period('M').astype(str)
     df['Conta'] = df['Conta'].astype(str)
@@ -49,24 +49,28 @@ if filtrar_por_mes:
     df_filtrado = df_filtrado[df_filtrado['Mês/Ano'].between(mes_inicial, mes_final)]
 
 if filtrar_por_grupo:
-    grupo_selecionado = st.sidebar.selectbox('Selecione o Grupo', df['Grupo'].unique())
+    grupos_disponiveis = sorted(df_filtrado['Grupo'].unique())
+    grupo_selecionado = st.sidebar.selectbox('Selecione o Grupo', grupos_disponiveis)
     df_filtrado = df_filtrado[df_filtrado['Grupo'] == grupo_selecionado]
 
 if conta_filtro:
-    conta_selecionada = st.sidebar.selectbox('Selecione a Conta', df['Conta'].unique())
+    contas_disponiveis = sorted(df_filtrado['Conta'].unique())
+    conta_selecionada = st.sidebar.selectbox('Selecione a Conta', contas_disponiveis)
     df_filtrado = df_filtrado[df_filtrado['Conta'] == conta_selecionada]
 
 if centro_custo_filtro:
-    centro_custo_selecionado = st.sidebar.selectbox('Selecione o Centro de Custo', df['Centro de Custo'].unique())
+    centros_custo_disponiveis = sorted(df_filtrado['Centro de Custo'].unique())
+    centro_custo_selecionado = st.sidebar.selectbox('Selecione o Centro de Custo', centros_custo_disponiveis)
     df_filtrado = df_filtrado[df_filtrado['Centro de Custo'] == centro_custo_selecionado]
 
 if fornecedor_filtro:
-    fornecedor_selecionado = st.sidebar.selectbox('Selecione o Fornecedor', df['Fornecedor'].unique())
+    fornecedores_disponiveis = sorted(df_filtrado['Fornecedor'].unique())
+    fornecedor_selecionado = st.sidebar.selectbox('Selecione o Fornecedor', fornecedores_disponiveis)
     df_filtrado = df_filtrado[df_filtrado['Fornecedor'] == fornecedor_selecionado]
-    
+        
 st.dataframe(df_filtrado, height=500, width=1500)
 
-st.markdown("### Grafico da Movimentação por período")
+st.markdown("### Gráfico da Movimentação por período")
 
 # Colunas para o grafico
 
